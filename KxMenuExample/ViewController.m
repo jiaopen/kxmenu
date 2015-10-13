@@ -122,27 +122,37 @@
       [KxMenuItem menuItem:@"Share this"
                      image:[UIImage imageNamed:@"action_icon"]
                     target:self
-                    action:@selector(pushMenuItem:)],
+                    action:^{
+                        [self pushMenuItem:nil];
+                    }],
       
       [KxMenuItem menuItem:@"Check this menu"
                      image:nil
                     target:self
-                    action:@selector(pushMenuItem:)],
+                    action:^{
+                        [self pushMenuItem:nil];
+                    }],
       
       [KxMenuItem menuItem:@"Reload page"
                      image:[UIImage imageNamed:@"reload"]
                     target:self
-                    action:@selector(pushMenuItem:)],
+                    action:^{
+                        [self pushMenuItem:nil];
+                    }],
       
       [KxMenuItem menuItem:@"Search"
                      image:[UIImage imageNamed:@"search_icon"]
                     target:self
-                    action:@selector(pushMenuItem:)],
+                    action:^{
+                        [self pushMenuItem:nil];
+                    }],
       
       [KxMenuItem menuItem:@"Go home"
                      image:[UIImage imageNamed:@"home_icon"]
                     target:self
-                    action:@selector(pushMenuItem:)],
+                    action:^{
+                        [self pushMenuItem:nil];
+                    }],
       ];
     
     KxMenuItem *first = menuItems[0];
@@ -156,7 +166,7 @@
 
 - (void) pushMenuItem:(id)sender
 {
-    NSLog(@"%@", sender);
+
 }
 
 @end

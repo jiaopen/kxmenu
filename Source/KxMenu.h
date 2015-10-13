@@ -29,7 +29,7 @@
  CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
  OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-*/
+ */
 
 
 #import <Foundation/Foundation.h>
@@ -39,14 +39,14 @@
 @property (readwrite, nonatomic, strong) UIImage *image;
 @property (readwrite, nonatomic, strong) NSString *title;
 @property (readwrite, nonatomic, weak) id target;
-@property (readwrite, nonatomic) SEL action;
+@property (nonatomic , copy) void (^action)(void);
 @property (readwrite, nonatomic, strong) UIColor *foreColor;
 @property (readwrite, nonatomic) NSTextAlignment alignment;
 
 + (instancetype) menuItem:(NSString *) title
                     image:(UIImage *) image
                    target:(id)target
-                   action:(SEL) action;
+                   action:(void (^) ())action;
 
 @end
 

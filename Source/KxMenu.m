@@ -29,17 +29,18 @@
  CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
  OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-*/
+ */
 
 /*
  Some ideas was taken from QBPopupMenu project by Katsuma Tanaka.
  https://github.com/questbeat/QBPopupMenu
-*/
+ */
 
 #import "KxMenu.h"
 #import <QuartzCore/QuartzCore.h>
 
-const CGFloat kArrowSize = 12.f;
+const CGFloat kArrowWidth = 12.f;
+const CGFloat kArrowHeight = 8.f;
 
 ////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////
@@ -58,7 +59,7 @@ const CGFloat kArrowSize = 12.f;
 {
     self = [super initWithFrame:frame];
     if (self) {
-        self.backgroundColor = [UIColor clearColor];
+        self.backgroundColor = [UIColor colorWithRed:111/255 green:111/255 blue:111/255 alpha:0.5];
         self.opaque = NO;
         
         UITapGestureRecognizer *gestureRecognizer;
@@ -91,7 +92,7 @@ const CGFloat kArrowSize = 12.f;
 + (instancetype) menuItem:(NSString *) title
                     image:(UIImage *) image
                    target:(id)target
-                   action:(SEL) action
+                   action:(void (^) ())action
 {
     return [[KxMenuItem alloc] init:title
                               image:image
@@ -102,8 +103,7 @@ const CGFloat kArrowSize = 12.f;
 - (id) init:(NSString *) title
       image:(UIImage *) image
      target:(id)target
-     action:(SEL) action
-{
+     action:(void (^) ())action{
     NSParameterAssert(title.length || image);
     
     self = [super init];
@@ -124,12 +124,7 @@ const CGFloat kArrowSize = 12.f;
 
 - (void) performAction
 {
-    __strong id target = self.target;
-    
-    if (target && [target respondsToSelector:_action]) {
-        
-        [target performSelectorOnMainThread:_action withObject:self waitUntilDone:YES];
-    }
+    _action();
 }
 
 - (NSString *) description
@@ -143,7 +138,7 @@ const CGFloat kArrowSize = 12.f;
 ////////////////////////////////////////////////////////////////////////////////
 
 typedef enum {
-  
+    
     KxMenuViewArrowDirectionNone,
     KxMenuViewArrowDirectionUp,
     KxMenuViewArrowDirectionDown,
@@ -162,9 +157,9 @@ typedef enum {
 
 - (id)init
 {
-    self = [super initWithFrame:CGRectZero];    
+    self = [super initWithFrame:CGRectZero];
     if(self) {
-
+        
         self.backgroundColor = [UIColor clearColor];
         self.opaque = YES;
         self.alpha = 0;
@@ -185,7 +180,7 @@ typedef enum {
     const CGSize contentSize = _contentView.frame.size;
     
     const CGFloat outerWidth = view.bounds.size.width;
-    const CGFloat outerHeight = view.bounds.size.height;
+    const CGFloat outerHeight = [UIScreen mainScreen].bounds.size.height;
     
     const CGFloat rectX0 = fromRect.origin.x;
     const CGFloat rectX1 = fromRect.origin.x + fromRect.size.width;
@@ -194,15 +189,15 @@ typedef enum {
     const CGFloat rectY1 = fromRect.origin.y + fromRect.size.height;
     const CGFloat rectYM = fromRect.origin.y + fromRect.size.height * 0.5f;;
     
-    const CGFloat widthPlusArrow = contentSize.width + kArrowSize;
-    const CGFloat heightPlusArrow = contentSize.height + kArrowSize;
+    const CGFloat widthPlusArrow = contentSize.width + kArrowWidth;
+    const CGFloat heightPlusArrow = contentSize.height + kArrowHeight;
     const CGFloat widthHalf = contentSize.width * 0.5f;
     const CGFloat heightHalf = contentSize.height * 0.5f;
     
-    const CGFloat kMargin = 5.f;
+    const CGFloat kMargin = 0.f;
     
     if (heightPlusArrow < (outerHeight - rectY1)) {
-    
+        
         _arrowDirection = KxMenuViewArrowDirectionUp;
         CGPoint point = (CGPoint){
             rectXM - widthHalf,
@@ -216,14 +211,14 @@ typedef enum {
             point.x = outerWidth - contentSize.width - kMargin;
         
         _arrowPosition = rectXM - point.x;
-        //_arrowPosition = MAX(16, MIN(_arrowPosition, contentSize.width - 16));        
-        _contentView.frame = (CGRect){0, kArrowSize, contentSize};
-                
+        //_arrowPosition = MAX(16, MIN(_arrowPosition, contentSize.width - 16));
+        _contentView.frame = (CGRect){0, kArrowHeight, contentSize};
+        
         self.frame = (CGRect) {
             
             point,
             contentSize.width,
-            contentSize.height + kArrowSize
+            contentSize.height + kArrowHeight
         };
         
     } else if (heightPlusArrow < rectY0) {
@@ -247,7 +242,7 @@ typedef enum {
             
             point,
             contentSize.width,
-            contentSize.height + kArrowSize
+            contentSize.height + kArrowHeight
         };
         
     } else if (widthPlusArrow < (outerWidth - rectX1)) {
@@ -265,12 +260,12 @@ typedef enum {
             point.y = outerHeight - contentSize.height - kMargin;
         
         _arrowPosition = rectYM - point.y;
-        _contentView.frame = (CGRect){kArrowSize, 0, contentSize};
+        _contentView.frame = (CGRect){kArrowWidth, 0, contentSize};
         
         self.frame = (CGRect) {
             
             point,
-            contentSize.width + kArrowSize,
+            contentSize.width + kArrowWidth,
             contentSize.height
         };
         
@@ -294,7 +289,7 @@ typedef enum {
         self.frame = (CGRect) {
             
             point,
-            contentSize.width  + kArrowSize,
+            contentSize.width  + kArrowWidth,
             contentSize.height
         };
         
@@ -308,7 +303,7 @@ typedef enum {
             (outerHeight - contentSize.height) * 0.5f,
             contentSize,
         };
-    }    
+    }
 }
 
 - (void)showMenuInView:(UIView *)view
@@ -320,11 +315,19 @@ typedef enum {
     _contentView = [self mkContentView];
     [self addSubview:_contentView];
     
-    [self setupFrameInView:view fromRect:rect];
-        
-    KxMenuOverlay *overlay = [[KxMenuOverlay alloc] initWithFrame:view.bounds];
+    [self setupFrameInView:view fromRect:[view convertRect:rect toView:view.window]];
+    
+    KxMenuOverlay *overlay = [[KxMenuOverlay alloc] initWithFrame:[UIScreen mainScreen].bounds];
+    overlay.alpha = 0;
     [overlay addSubview:self];
-    [view addSubview:overlay];
+    NSEnumerator *frontToBackWindows = [UIApplication.sharedApplication.windows reverseObjectEnumerator];
+    UIScreen *mainScreen = UIScreen.mainScreen;
+    
+    for (UIWindow *window in frontToBackWindows)
+        if (window.screen == mainScreen && window.windowLevel == UIWindowLevelNormal) {
+            [window addSubview:overlay];
+            break;
+        }
     
     _contentView.hidden = YES;
     const CGRect toFrame = self.frame;
@@ -332,23 +335,23 @@ typedef enum {
     
     [UIView animateWithDuration:0.2
                      animations:^(void) {
-                         
+                         overlay.alpha = 1;
                          self.alpha = 1.0f;
                          self.frame = toFrame;
                          
                      } completion:^(BOOL completed) {
                          _contentView.hidden = NO;
                      }];
-   
+    
 }
 
 - (void)dismissMenu:(BOOL) animated
 {
     if (self.superview) {
-     
+        
         if (animated) {
             
-            _contentView.hidden = YES;            
+            _contentView.hidden = YES;
             const CGRect toFrame = (CGRect){self.arrowPoint, 1, 1};
             
             [UIView animateWithDuration:0.2
@@ -366,9 +369,18 @@ typedef enum {
             
         } else {
             
-            if ([self.superview isKindOfClass:[KxMenuOverlay class]])
-                [self.superview removeFromSuperview];
-            [self removeFromSuperview];
+            [UIView animateWithDuration:0.2
+                             animations:^(void) {
+                                 
+                                 self.superview.alpha = 0;
+                                 
+                             } completion:^(BOOL finished) {
+                                 
+                                 if ([self.superview isKindOfClass:[KxMenuOverlay class]])
+                                     [self.superview removeFromSuperview];
+                                 [self removeFromSuperview];;
+                             }];
+            
         }
     }
 }
@@ -390,24 +402,24 @@ typedef enum {
     
     if (!_menuItems.count)
         return nil;
- 
+    
     const CGFloat kMinMenuItemHeight = 32.f;
     const CGFloat kMinMenuItemWidth = 32.f;
-    const CGFloat kMarginX = 10.f;
-    const CGFloat kMarginY = 5.f;
+    const CGFloat kMarginX = 5.0f;
+    const CGFloat kMarginY = 18.f;
     
     UIFont *titleFont = [KxMenu titleFont];
-    if (!titleFont) titleFont = [UIFont boldSystemFontOfSize:16];
+    if (!titleFont) titleFont = [UIFont boldSystemFontOfSize:18];
     
-    CGFloat maxImageWidth = 0;    
+    CGFloat maxImageWidth = 0;
     CGFloat maxItemHeight = 0;
     CGFloat maxItemWidth = 0;
     
     for (KxMenuItem *menuItem in _menuItems) {
         
-        const CGSize imageSize = menuItem.image.size;        
+        const CGSize imageSize = menuItem.image.size;
         if (imageSize.width > maxImageWidth)
-            maxImageWidth = imageSize.width;        
+            maxImageWidth = imageSize.width;
     }
     
     if (maxImageWidth) {
@@ -415,12 +427,12 @@ typedef enum {
     }
     
     for (KxMenuItem *menuItem in _menuItems) {
-
+        
         const CGSize titleSize = [menuItem.title sizeWithFont:titleFont];
         const CGSize imageSize = menuItem.image.size;
-
+        
         const CGFloat itemHeight = MAX(titleSize.height, imageSize.height) + kMarginY * 2;
-        const CGFloat itemWidth = ((!menuItem.enabled && !menuItem.image) ? titleSize.width : maxImageWidth + titleSize.width) + kMarginX * 4;
+        const CGFloat itemWidth = [UIScreen mainScreen].bounds.size.width;
         
         if (itemHeight > maxItemHeight)
             maxItemHeight = itemHeight;
@@ -428,37 +440,37 @@ typedef enum {
         if (itemWidth > maxItemWidth)
             maxItemWidth = itemWidth;
     }
-       
+    
     maxItemWidth  = MAX(maxItemWidth, kMinMenuItemWidth);
     maxItemHeight = MAX(maxItemHeight, kMinMenuItemHeight);
-
-    const CGFloat titleX = kMarginX * 2 + maxImageWidth;
+    
+    const CGFloat titleX = kMarginX * 4 + maxImageWidth;
     const CGFloat titleWidth = maxItemWidth - titleX - kMarginX * 2;
     
     UIImage *selectedImage = [KxMenuView selectedImage:(CGSize){maxItemWidth, maxItemHeight + 2}];
-    UIImage *gradientLine = [KxMenuView gradientLine: (CGSize){maxItemWidth - kMarginX * 4, 1}];
+    UIImage *gradientLine = [KxMenuView gradientLine: (CGSize){maxItemWidth - kMarginX * 4, 0.5}];
     
     UIView *contentView = [[UIView alloc] initWithFrame:CGRectZero];
     contentView.autoresizingMask = UIViewAutoresizingNone;
     contentView.backgroundColor = [UIColor clearColor];
     contentView.opaque = NO;
     
-    CGFloat itemY = kMarginY * 2;
+    CGFloat itemY = 0;
     NSUInteger itemNum = 0;
-        
+    
     for (KxMenuItem *menuItem in _menuItems) {
-                
+        
         const CGRect itemFrame = (CGRect){0, itemY, maxItemWidth, maxItemHeight};
         
         UIView *itemView = [[UIView alloc] initWithFrame:itemFrame];
         itemView.autoresizingMask = UIViewAutoresizingNone;
-        itemView.backgroundColor = [UIColor clearColor];        
+        itemView.backgroundColor = [UIColor clearColor];
         itemView.opaque = NO;
-                
+        
         [contentView addSubview:itemView];
         
         if (menuItem.enabled) {
-        
+            
             UIButton *button = [UIButton buttonWithType:UIButtonTypeCustom];
             button.tag = itemNum;
             button.frame = itemView.bounds;
@@ -470,7 +482,8 @@ typedef enum {
             [button addTarget:self
                        action:@selector(performAction:)
              forControlEvents:UIControlEventTouchUpInside];
-            
+            button.layer.cornerRadius = 8;
+            button.clipsToBounds = YES;
             [button setBackgroundImage:selectedImage forState:UIControlStateHighlighted];
             
             [itemView addSubview:button];
@@ -503,11 +516,11 @@ typedef enum {
             titleLabel.text = menuItem.title;
             titleLabel.font = titleFont;
             titleLabel.textAlignment = menuItem.alignment;
-            titleLabel.textColor = menuItem.foreColor ? menuItem.foreColor : [UIColor whiteColor];
+            titleLabel.textColor = menuItem.foreColor ? menuItem.foreColor : [UIColor blackColor];
             titleLabel.backgroundColor = [UIColor clearColor];
             titleLabel.autoresizingMask = UIViewAutoresizingNone;
             //titleLabel.backgroundColor = [UIColor greenColor];
-            [itemView addSubview:titleLabel];            
+            [itemView addSubview:titleLabel];
         }
         
         if (menuItem.image) {
@@ -524,18 +537,18 @@ typedef enum {
         if (itemNum < _menuItems.count - 1) {
             
             UIImageView *gradientView = [[UIImageView alloc] initWithImage:gradientLine];
-            gradientView.frame = (CGRect){kMarginX * 2, maxItemHeight + 1, gradientLine.size};
+            gradientView.frame = (CGRect){kMarginX * 2, maxItemHeight + 0.5, gradientLine.size};
             gradientView.contentMode = UIViewContentModeLeft;
             [itemView addSubview:gradientView];
             
-            itemY += 2;
+            itemY += 0.5;
         }
         
         itemY += maxItemHeight;
         ++itemNum;
-    }    
+    }
     
-    contentView.frame = (CGRect){0, 0, maxItemWidth, itemY + kMarginY * 2};
+    contentView.frame = (CGRect){0, 0, maxItemWidth, itemY};
     
     return contentView;
 }
@@ -584,7 +597,7 @@ typedef enum {
     const CGFloat locations[5] = {0,0.2,0.5,0.8,1};
     
     const CGFloat R = 0.44f, G = 0.44f, B = 0.44f;
-        
+    
     const CGFloat components[20] = {
         R,G,B,0.1,
         R,G,B,0.4,
@@ -624,8 +637,8 @@ typedef enum {
 - (void)drawBackground:(CGRect)frame
              inContext:(CGContextRef) context
 {
-    CGFloat R0 = 0.267, G0 = 0.303, B0 = 0.335;
-    CGFloat R1 = 0.040, G1 = 0.040, B1 = 0.040;
+    CGFloat R0 = 1, G0 = 1, B0 = 1;
+    CGFloat R1 = 1, G1 = 1, B1 = 1;
     
     UIColor *tintColor = [KxMenu tintColor];
     if (tintColor) {
@@ -649,10 +662,10 @@ typedef enum {
     if (_arrowDirection == KxMenuViewArrowDirectionUp) {
         
         const CGFloat arrowXM = _arrowPosition;
-        const CGFloat arrowX0 = arrowXM - kArrowSize;
-        const CGFloat arrowX1 = arrowXM + kArrowSize;
+        const CGFloat arrowX0 = arrowXM - kArrowWidth;
+        const CGFloat arrowX1 = arrowXM + kArrowWidth;
         const CGFloat arrowY0 = Y0;
-        const CGFloat arrowY1 = Y0 + kArrowSize + kEmbedFix;
+        const CGFloat arrowY1 = Y0 + kArrowHeight + kEmbedFix;
         
         [arrowPath moveToPoint:    (CGPoint){arrowXM, arrowY0}];
         [arrowPath addLineToPoint: (CGPoint){arrowX1, arrowY1}];
@@ -661,14 +674,14 @@ typedef enum {
         
         [[UIColor colorWithRed:R0 green:G0 blue:B0 alpha:1] set];
         
-        Y0 += kArrowSize;
+        Y0 += kArrowHeight;
         
     } else if (_arrowDirection == KxMenuViewArrowDirectionDown) {
         
         const CGFloat arrowXM = _arrowPosition;
-        const CGFloat arrowX0 = arrowXM - kArrowSize;
-        const CGFloat arrowX1 = arrowXM + kArrowSize;
-        const CGFloat arrowY0 = Y1 - kArrowSize - kEmbedFix;
+        const CGFloat arrowX0 = arrowXM - kArrowWidth;
+        const CGFloat arrowX1 = arrowXM + kArrowWidth;
+        const CGFloat arrowY0 = Y1 - kArrowHeight - kEmbedFix;
         const CGFloat arrowY1 = Y1;
         
         [arrowPath moveToPoint:    (CGPoint){arrowXM, arrowY1}];
@@ -678,15 +691,15 @@ typedef enum {
         
         [[UIColor colorWithRed:R1 green:G1 blue:B1 alpha:1] set];
         
-        Y1 -= kArrowSize;
+        Y1 -= kArrowHeight;
         
     } else if (_arrowDirection == KxMenuViewArrowDirectionLeft) {
         
-        const CGFloat arrowYM = _arrowPosition;        
+        const CGFloat arrowYM = _arrowPosition;
         const CGFloat arrowX0 = X0;
-        const CGFloat arrowX1 = X0 + kArrowSize + kEmbedFix;
-        const CGFloat arrowY0 = arrowYM - kArrowSize;;
-        const CGFloat arrowY1 = arrowYM + kArrowSize;
+        const CGFloat arrowX1 = X0 + kArrowWidth + kEmbedFix;
+        const CGFloat arrowY0 = arrowYM - kArrowHeight;;
+        const CGFloat arrowY1 = arrowYM + kArrowHeight;
         
         [arrowPath moveToPoint:    (CGPoint){arrowX0, arrowYM}];
         [arrowPath addLineToPoint: (CGPoint){arrowX1, arrowY0}];
@@ -695,15 +708,15 @@ typedef enum {
         
         [[UIColor colorWithRed:R0 green:G0 blue:B0 alpha:1] set];
         
-        X0 += kArrowSize;
+        X0 += kArrowWidth;
         
     } else if (_arrowDirection == KxMenuViewArrowDirectionRight) {
         
-        const CGFloat arrowYM = _arrowPosition;        
+        const CGFloat arrowYM = _arrowPosition;
         const CGFloat arrowX0 = X1;
-        const CGFloat arrowX1 = X1 - kArrowSize - kEmbedFix;
-        const CGFloat arrowY0 = arrowYM - kArrowSize;;
-        const CGFloat arrowY1 = arrowYM + kArrowSize;
+        const CGFloat arrowX1 = X1 - kArrowWidth - kEmbedFix;
+        const CGFloat arrowY0 = arrowYM - kArrowHeight;;
+        const CGFloat arrowY1 = arrowYM + kArrowHeight;
         
         [arrowPath moveToPoint:    (CGPoint){arrowX0, arrowYM}];
         [arrowPath addLineToPoint: (CGPoint){arrowX1, arrowY0}];
@@ -712,18 +725,18 @@ typedef enum {
         
         [[UIColor colorWithRed:R1 green:G1 blue:B1 alpha:1] set];
         
-        X1 -= kArrowSize;
+        X1 -= kArrowWidth;
     }
     
     [arrowPath fill];
-
+    
     // render body
     
     const CGRect bodyFrame = {X0, Y0, X1 - X0, Y1 - Y0};
     
     UIBezierPath *borderPath = [UIBezierPath bezierPathWithRoundedRect:bodyFrame
                                                           cornerRadius:8];
-        
+    
     const CGFloat locations[] = {0, 1};
     const CGFloat components[] = {
         R0, G0, B0, 1,
@@ -744,7 +757,7 @@ typedef enum {
     
     if (_arrowDirection == KxMenuViewArrowDirectionLeft ||
         _arrowDirection == KxMenuViewArrowDirectionRight) {
-                
+        
         start = (CGPoint){X0, Y0};
         end = (CGPoint){X1, Y0};
         
@@ -756,7 +769,7 @@ typedef enum {
     
     CGContextDrawLinearGradient(context, gradient, start, end, 0);
     
-    CGGradientRelease(gradient);    
+    CGGradientRelease(gradient);
 }
 
 @end
@@ -796,7 +809,7 @@ static UIFont *gTitleFont;
 
 - (void) dealloc
 {
-    if (_observing) {        
+    if (_observing) {
         [[NSNotificationCenter defaultCenter] removeObserver:self];
     }
 }
@@ -813,9 +826,9 @@ static UIFont *gTitleFont;
         [_menuView dismissMenu:NO];
         _menuView = nil;
     }
-
-    if (!_observing) {
     
+    if (!_observing) {
+        
         _observing = YES;
         
         [[NSNotificationCenter defaultCenter] addObserver:self
@@ -823,10 +836,10 @@ static UIFont *gTitleFont;
                                                      name:UIApplicationWillChangeStatusBarOrientationNotification
                                                    object:nil];
     }
-
+    
     
     _menuView = [[KxMenuView alloc] init];
-    [_menuView showMenuInView:view fromRect:rect menuItems:menuItems];    
+    [_menuView showMenuInView:view fromRect:rect menuItems:menuItems];
 }
 
 - (void) dismissMenu
