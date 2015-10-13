@@ -9,8 +9,7 @@ KxMenu is a vertical popup menu for using in iOS applications
 
 =======================================
 
-![sample png](https://github.com/jiaopen/kxmenu/blob/master/screenshot/example.gif "Sample Png")
-![sample gif](https://github.com/jiaopen/kxmenu/blob/master/screenshot/example.png "Sample Gif")
+![sample gif](https://github.com/jiaopen/kxmenu/blob/master/screenshot/example.gif "Sample Gif")
 
 ### Usage
 
